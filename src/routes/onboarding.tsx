@@ -5,29 +5,73 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Flame, Check, Store, MapPin, FileText, Utensils } from "lucide-react";
+import { Flame, Check, Store, MapPin, FileText } from "lucide-react";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({
     meta: [
-      { title: "Onboarding — Zamato Partner" },
-      { name: "description", content: "Set up your restaurant on Zamato in a few quick steps." },
+      { title: "Onboarding - Zamato Partner" },
+      { name: "description", content: "Set up your restaurant on Zamato." },
     ],
   }),
   component: Onboarding,
 });
 
+const API_URL = "http://localhost:8001/api";
+
 const steps = [
-  { icon: Store, title: "Restaurant details", desc: "Name, cuisine, phone" },
+  { icon: Store, title: "Restaurant details", desc: "Owner, login and cuisine" },
   { icon: MapPin, title: "Location & hours", desc: "Address and timings" },
   { icon: FileText, title: "Documents", desc: "FSSAI, GST, PAN" },
-  { icon: Utensils, title: "Menu setup", desc: "Add first few dishes" },
 ];
 
 function Onboarding() {
   const [step, setStep] = useState(0);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    ownerName: "",
+    restaurantName: "",
+    mobile: "",
+    email: "",
+    password: "",
+    cuisine: "",
+    image: "",
+    address: "",
+    city: "",
+    pincode: "",
+    opensAt: "10:00 AM",
+    closesAt: "11:00 PM",
+    fssai: "",
+    gst: "",
+    pan: "",
+  });
   const navigate = useNavigate();
   const isLast = step === steps.length - 1;
+
+  function updateField(field: string, value: string) {
+    setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  async function registerVendor() {
+    setSaving(true);
+    setError("");
+    const response = await fetch(`${API_URL}/vendors/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+    const data = await response.json();
+    setSaving(false);
+    if (!response.ok) {
+      setError(data.error || "Onboarding failed");
+      return;
+    }
+
+    localStorage.setItem("vendorToken", data.token);
+    localStorage.setItem("vendor", JSON.stringify(data.vendor));
+    navigate({ to: "/products" });
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -38,7 +82,7 @@ function Onboarding() {
             <span className="font-display text-xl font-bold">zamato</span>
             <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">Partner Onboarding</span>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/" })}>Skip for now</Button>
+          <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/login" })}>Login instead</Button>
         </div>
       </header>
 
@@ -75,52 +119,40 @@ function Onboarding() {
           <div className="mt-6 grid gap-4">
             {step === 0 && (
               <>
-                <Field label="Restaurant name" defaultValue="Spice Palace" />
+                <Field label="Restaurant name" value={form.restaurantName} onChange={(value) => updateField("restaurantName", value)} />
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Owner name" defaultValue="Suresh Patel" />
-                  <Field label="Phone" defaultValue="+91 98765 43210" />
+                  <Field label="Owner name" value={form.ownerName} onChange={(value) => updateField("ownerName", value)} />
+                  <Field label="Mobile" value={form.mobile} onChange={(value) => updateField("mobile", value)} />
                 </div>
-                <Field label="Cuisine" defaultValue="North Indian, Biryani, Chinese" />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Email" value={form.email} onChange={(value) => updateField("email", value)} />
+                  <Field label="Password" type="password" value={form.password} onChange={(value) => updateField("password", value)} />
+                </div>
+                <Field label="Cuisine" value={form.cuisine} onChange={(value) => updateField("cuisine", value)} />
+                <Field label="Restaurant image URL" value={form.image} onChange={(value) => updateField("image", value)} />
               </>
             )}
             {step === 1 && (
               <>
-                <Field label="Full address" as="textarea" defaultValue="Shop 12, MG Road, Bandra West, Mumbai 400050" />
+                <Field label="Full address" as="textarea" value={form.address} onChange={(value) => updateField("address", value)} />
                 <div className="grid gap-4 sm:grid-cols-3">
-                  <Field label="City" defaultValue="Mumbai" />
-                  <Field label="Pincode" defaultValue="400050" />
-                  <Field label="Landmark" defaultValue="Near Metro" />
+                  <Field label="City" value={form.city} onChange={(value) => updateField("city", value)} />
+                  <Field label="Pincode" value={form.pincode} onChange={(value) => updateField("pincode", value)} />
+                  <Field label="Opens at" value={form.opensAt} onChange={(value) => updateField("opensAt", value)} />
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Opens at" defaultValue="10:00 AM" />
-                  <Field label="Closes at" defaultValue="11:30 PM" />
-                </div>
+                <Field label="Closes at" value={form.closesAt} onChange={(value) => updateField("closesAt", value)} />
               </>
             )}
             {step === 2 && (
               <>
-                <Field label="FSSAI License Number" defaultValue="12345678901234" />
+                <Field label="FSSAI License Number" value={form.fssai} onChange={(value) => updateField("fssai", value)} />
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="GST Number" defaultValue="27ABCDE1234F1Z5" />
-                  <Field label="PAN Number" defaultValue="ABCDE1234F" />
-                </div>
-                <div className="rounded-lg border-2 border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                  Drag & drop scanned copies here or <span className="font-semibold text-primary">browse files</span>
+                  <Field label="GST Number" value={form.gst} onChange={(value) => updateField("gst", value)} />
+                  <Field label="PAN Number" value={form.pan} onChange={(value) => updateField("pan", value)} />
                 </div>
               </>
             )}
-            {step === 3 && (
-              <>
-                <p className="text-sm text-muted-foreground">Add at least 3 dishes to go live. You can add more later.</p>
-                {[1, 2, 3].map((n) => (
-                  <div key={n} className="grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-[1fr_120px_120px]">
-                    <Field label={`Dish ${n} name`} defaultValue={["Butter Chicken", "Paneer Tikka", "Veg Biryani"][n - 1]} />
-                    <Field label="Price (₹)" defaultValue={["320", "240", "220"][n - 1]} />
-                    <Field label="Category" defaultValue={["Main", "Starter", "Biryani"][n - 1]} />
-                  </div>
-                ))}
-              </>
-            )}
+            {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
 
           <div className="mt-8 flex items-center justify-between border-t border-border pt-6">
@@ -129,9 +161,10 @@ function Onboarding() {
               <span className="text-xs text-muted-foreground">{step + 1} of {steps.length}</span>
               <Button
                 className="bg-primary hover:bg-primary/90 shadow-[var(--shadow-glow)]"
-                onClick={() => (isLast ? navigate({ to: "/" }) : setStep(step + 1))}
+                disabled={saving}
+                onClick={() => (isLast ? registerVendor() : setStep(step + 1))}
               >
-                {isLast ? "Finish & go to dashboard" : "Continue"}
+                {isLast ? (saving ? "Creating..." : "Create restaurant") : "Continue"}
               </Button>
             </div>
           </div>
@@ -141,13 +174,13 @@ function Onboarding() {
   );
 }
 
-function Field({ label, defaultValue, as }: { label: string; defaultValue?: string; as?: "textarea" }) {
+function Field({ label, value, onChange, as, type = "text" }: { label: string; value: string; onChange: (value: string) => void; as?: "textarea"; type?: string }) {
   return (
     <div className="space-y-1.5">
       <Label>{label}</Label>
       {as === "textarea"
-        ? <Textarea defaultValue={defaultValue} rows={3} />
-        : <Input defaultValue={defaultValue} />}
+        ? <Textarea value={value} onChange={(event) => onChange(event.target.value)} rows={3} />
+        : <Input type={type} value={value} onChange={(event) => onChange(event.target.value)} />}
     </div>
   );
 }
