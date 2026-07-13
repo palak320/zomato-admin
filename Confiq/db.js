@@ -1,7 +1,7 @@
 const Sequelize = require('sequelize');
 
-const db = new Sequelize('zamato', 'root', 'Himanshu@91', {
-  host: 'localhost',
+const db = new Sequelize('mysql://root:vLPIIMkTxjxtdDteghqxzsScIKTyVPMz@tokaido.proxy.rlwy.net:49869/railway', {
+ 
   dialect: 'mysql',
   logging: false,
 });
